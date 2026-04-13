@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Генератор плана школьного участка (реальные метры и формулы)</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background: #1e3a2f;
+        }
+        .header {
+            background: #0f2b1f;
+            color: #f9e7c2;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .header h1 { font-size: 1.4rem; }
+        .controls button {
+            background: #f4a261;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: 0.2s;
+        }
+        .controls button:hover { background: #e76f51; transform: scale(1.02); color: white; }
+        .info-bar {
+            background: #e9f5db;
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            border-bottom: 3px solid #f4a261;
+        }
+        .stats span {
+            background: #cfe3c3;
+            padding: 4px 12px;
+            border-radius: 30px;
+            margin-left: 8px;
+        }
+        #map-container {
+            height: calc(100vh - 110px);
+            width: 100%;
+            background: #bed6a3;
+        }
+        .custom-popup .leaflet-popup-content-wrapper {
+            background: #2c4225;
+            color: #fff3db;
+            border-radius: 20px;
+            border-left: 6px solid #f4a261;
+            font-size: 13px;
+        }
+        .flower-fact {
+            background: #fff8e7;
+            color: #2d4a22;
+            padding: 10px;
+            border-radius: 18px;
+            max-width: 250px;
+            font-size: 12px;
+        }
+        .footer {
+            position: fixed;
+            bottom: 8px;
+            right: 12px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            font-size: 10px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            pointer-events: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <div>
+        <h1>🏫 План школьного участка | Реальные метры + формулы 9 класса</h1>
+        <div style="font-size: 0.8rem;">110м × 65м | Вход в школу (север, центр) | Ворота с юга (30м–50м)</div>
+    </div>
+    <div class="controls">
+        <button id="regenerateBtn">🌀 Сгенерировать новый план (честные расчеты)</button>
+    </div>
+</div>
+<div class="info-bar">
+    <div>📍 <strong>Клик по клумбе</strong> → площадь, периметр, количество цветов (формулы)</div>
+    <div>🌸 <strong>Клик по цветку</strong> → совет садовода, расстояние посадки</div>
+    <div class="stats" id="statsArea">📐 генерация...</div>
+</div>
+<div id="map-container"></div>
+<div class="footer">🔍 Зум мышкой | Каждый клик — новый генплан с проверкой пересечений</div>
+
+<script>
+    // ---------- РЕАЛЬНЫЕ РАЗМЕРЫ УЧАСТКА (метры) ----------
+    const W = 110;   // ширина (ось X)
+    const H = 65;    // высота (ось Y)
+    // Вход на территорию (ворота) снизу: от x=30 до x=50, y=H
+    const GATE_START = 30;
+    const GATE_END = 50;
+    // Вход в школу: сверху по центру (x=W/2=55, y=0)
+    const SCHOOL_X = 55;
+    const SCHOOL_Y = 0;
+    
+    // Глобальные объекты
+    let map;
+    let currentLayer;
+    let currentFlowerMarkers = [];
+    let currentBeds = [];      // храним объекты клумб
+    let currentPaths = [];     // храним дорожки (для отрисовки)
+    
+    // ----- База фактов (реальные советы для 9 класса) -----
+    const factsDB = [
+        "🌿 Бархатцы выделяют фитонциды — защищают розы от тли. Сажайте по краю клумбы.",
+        "💧 Полив цветов вечером снижает испарение на 30% — экономия воды в школе.",
+        "🌻 Подсолнухи очищают почву от тяжелых металлов — эко-проект для участка.",
+        "🌸 Петунии требуют шаг посадки 25-30 см, иначе загущение и грибок.",
+        "🌹 При посадке роз добавьте горсть золы — калий для пышного цветения.",
+        "🍀 Клевер белый обогащает почву азотом, газон с клевером не требует удобрений.",
+        "📏 Для круглой клумбы: число цветов ≈ площадь (πR²) × плотность (5 шт/м²).",
+        "🧮 Для квадратной клумбы: N = (a·b) / (d²), где d = 0.3 м — шаг посадки.",
+        "🌷 Луковичные (тюльпаны) сажают на глубину 3 луковицы, расстояние 10-12 см.",
+        "✂️ Регулярная обрезка отцветших бутонов продлевает цветение на 2-3 недели."
+    ];
+    
+    function randomRange(min, max) {
+        return min + Math.random() * (max - min);
+    }
+    
+    // Проверка, пересекается ли новая клумба с уже существующими, дорожками (буфер), зданиями и воротами
+    function overlapsWithAny(newBed, existingBeds, paths, buffer = 1.2) {
+        // 1. проверка с другими клумбами
+        for (let b of existingBeds) {
+            if (b.type === 'circle') {
+                const dx = newBed.x - b.x;
+                const dy = newBed.y - b.y;
+                const minDist = newBed.radius + b.radius + buffer;
+                if (Math.hypot(dx, dy) < minDist) return true;
+            } else if (b.type === 'square') {
+                // квадрат: проверяем расстояние между прямоугольниками
+                const halfW1 = newBed.width/2, halfH1 = newBed.height/2;
+                const halfW2 = b.width/2, halfH2 = b.height/2;
+                if (Math.abs(newBed.x - b.x) < halfW1 + halfW2 + buffer &&
+                    Math.abs(newBed.y - b.y) < halfH1 + halfH2 + buffer) return true;
+            }
+        }
+        // 2. проверка с дорожками (упрощённо: дистанция до каждого сегмента пути)
+        for (let path of paths) {
+            for (let i = 0; i < path.points.length - 1; i++) {
+                const p1 = path.points[i];
+                const p2 = path.points[i+1];
+                // для круга
+                if (newBed.type === 'circle') {
+                    const closest = closestPointOnSegment(p1, p2, {x: newBed.x, y: newBed.y});
+                    const dist = Math.hypot(closest.x - newBed.x, closest.y - newBed.y);
+                    if (dist < newBed.radius + path.width/2 + buffer) return true;
+                } else if (newBed.type === 'square') {
+                    // приближённо: центр квадрата к дорожке + полуширина
+                    const closest = closestPointOnSegment(p1, p2, {x: newBed.x, y: newBed.y});
+                    const dist = Math.hypot(closest.x - newBed.x, closest.y - newBed.y);
+                    const halfDiag = Math.hypot(newBed.width/2, newBed.height/2);
+                    if (dist < halfDiag + path.width/2 + buffer) return true;
+                }
+            }
+        }
+        // 3. проверка со зданием школы (прямоугольник 20м ширина, 12м высота вокруг SCHOOL_X, SCHOOL_Y)
+        const schoolLeft = SCHOOL_X - 12;
+        const schoolRight = SCHOOL_X + 12;
+        const schoolTop = SCHOOL_Y;
+        const schoolBottom = SCHOOL_Y + 12;
+        if (newBed.type === 'circle') {
+            const closestX = Math.max(schoolLeft, Math.min(newBed.x, schoolRight));
+            const closestY = Math.max(schoolTop, Math.min(newBed.y, schoolBottom));
+            if (Math.hypot(newBed.x - closestX, newBed.y - closestY) < newBed.radius + buffer) return true;
+        } else {
+            if (newBed.x + newBed.width/2 > schoolLeft - buffer && newBed.x - newBed.width/2 < schoolRight + buffer &&
+                newBed.y + newBed.height/2 > schoolTop - buffer && newBed.y - newBed.height/2 < schoolBottom + buffer)
+                return true;
+        }
+        // 4. проверка с воротами (зона входа снизу)
+        if (newBed.y + (newBed.type==='circle'? newBed.radius : newBed.height/2) > H - 2.5 &&
+            newBed.x + (newBed.type==='circle'? newBed.radius : newBed.width/2) > GATE_START - 1.5 &&
+            newBed.x - (newBed.type==='circle'? newBed.radius : newBed.width/2) < GATE_END + 1.5) return true;
+        
+        return false;
+    }
+    
+    // вспомогательная: ближайшая точка на отрезке
+    function closestPointOnSegment(a, b, p) {
+        const ax = b.x - a.x, ay = b.y - a.y;
+        const t = ((p.x - a.x)*ax + (p.y - a.y)*ay) / (ax*ax + ay*ay || 1);
+        const tClamped = Math.max(0, Math.min(1, t));
+        return { x: a.x + ax*tClamped, y: a.y + ay*tClamped };
+    }
+    
+    // Генерация случайных дорожек (с реальной шириной 1.8-2.2 м) и длиной
+    function generatePaths() {
+        const paths = [];
+        // Главная аллея от ворот до школы с изгибом
+        const mainWidth = randomRange(1.8, 2.3);
+        let points1 = [
+            {x: GATE_START, y: H},
+            {x: randomRange(38, 48), y: randomRange(35, 48)},
+            {x: SCHOOL_X - 3, y: SCHOOL_Y + 2}
+        ];
+        let points2 = [
+            {x: GATE_END, y: H},
+            {x: randomRange(60, 72), y: randomRange(38, 50)},
+            {x: SCHOOL_X + 3, y: SCHOOL_Y + 2}
+        ];
+        paths.push({ width: mainWidth, points: points1 });
+        paths.push({ width: mainWidth, points: points2 });
+        // Дополнительная поперечная дорожка (зона отдыха)
+        let crossPoints = [
+            {x: randomRange(15, 25), y: randomRange(25, 35)},
+            {x: randomRange(75, 90), y: randomRange(30, 42)}
+        ];
+        paths.push({ width: randomRange(1.5, 2.0), points: crossPoints });
+        return paths;
+    }
+    
+    // Генерация клумб: круглые + иногда квадратные, с проверкой
+    function generateFlowerBeds(existingPaths, maxAttempts=120) {
+        const beds = [];
+        const numBeds = Math.floor(randomRange(5, 9));
+        for (let i = 0; i < numBeds; i++) {
+            let attempts = 0;
+            let success = false;
+            while (attempts < maxAttempts && !success) {
+                const type = Math.random() < 0.7 ? 'circle' : 'square'; // 70% круглые
+                if (type === 'circle') {
+                    const radius = randomRange(2.5, 9.0);
+                    const x = randomRange(radius + 1.8, W - radius - 1.8);
+                    const y = randomRange(radius + 1.8, H - radius - 1.8);
+                    const newBed = { type: 'circle', x, y, radius, width: radius*2, height: radius*2 };
+                    if (!overlapsWithAny(newBed, beds, existingPaths, 1.2)) {
+                        beds.push({ type: 'circle', x, y, radius, mainFlower: getRandomFlower() });
+                        success = true;
+                    }
+                } else {
+                    const width = randomRange(2.2, 7.5);
+                    const height = randomRange(2.2, 7.5);
+                    const x = randomRange(width/2 + 1.5, W - width/2 - 1.5);
+                    const y = randomRange(height/2 + 1.5, H - height/2 - 1.5);
+                    const newBed = { type: 'square', x, y, width, height };
+                    if (!overlapsWithAny(newBed, beds, existingPaths, 1.2)) {
+                        beds.push({ type: 'square', x, y, width, height, mainFlower: getRandomFlower() });
+                        success = true;
+                    }
+                }
+                attempts++;
+            }
+        }
+        return beds;
+    }
+    
+    function getRandomFlower() {
+        const types = ['🌼 Ромашка', '🌷 Тюльпан', '🌹 Роза', '🌸 Петуния', '🌺 Мак', '🌻 Подсолнух', '💜 Лаванда'];
+        return types[Math.floor(Math.random() * types.length)];
+    }
+    
+    // РАСЧЁТ КОЛИЧЕСТВА ЦВЕТОВ по реальным формулам (плотность ~5 шт/м²)
+    function countFlowersOnBed(bed) {
+        let area = 0;
+        let perimeter = 0;
+        if (bed.type === 'circle') {
+            area = Math.PI * bed.radius * bed.radius;
+            perimeter = 2 * Math.PI * bed.radius;
+        } else {
+            area = bed.width * bed.height;
+            perimeter = 2 * (bed.width + bed.height);
+        }
+        const density = randomRange(4.2, 6.0);  // растений на м² (реалистично)
+        let estimatedPlants = Math.floor(area * density);
+        estimatedPlants = Math.max(6, estimatedPlants);
+        return { area: area.toFixed(1), perimeter: perimeter.toFixed(1), plants: estimatedPlants, density: density.toFixed(1) };
+    }
+    
+    // Генерация координат цветов на клумбе (по реальному шагу 0.25-0.35 м)
+    function generateFlowersOnBed(bed, bedId) {
+        const flowers = [];
+        if (bed.type === 'circle') {
+            const circumference = 2 * Math.PI * bed.radius;
+            const step = randomRange(0.28, 0.38);
+            let numCirc = Math.floor(circumference / step);
+            numCirc = Math.min(40, Math.max(6, numCirc));
+            for (let i = 0; i < numCirc; i++) {
+                const angle = (i / numCirc) * Math.PI * 2;
+                const fx = bed.x + Math.cos(angle) * bed.radius;
+                const fy = bed.y + Math.sin(angle) * bed.radius;
+                flowers.push({ x: fx, y: fy, bedId, flowerType: bed.mainFlower });
+            }
+            // внутренняя засадка по спирали/сетке (реальная площадь)
+            const area = Math.PI * bed.radius * bed.radius;
+            const innerDensity = 4.5;
+            let innerCount = Math.floor(area * innerDensity * 0.4);
+            innerCount = Math.min(35, innerCount);
+            for (let i = 0; i < innerCount; i++) {
+                const r = Math.sqrt(Math.random()) * bed.radius * 0.7;
+                const angle = Math.random() * Math.PI * 2;
+                const fx = bed.x + Math.cos(angle) * r;
+                const fy = bed.y + Math.sin(angle) * r;
+                flowers.push({ x: fx, y: fy, bedId, flowerType: bed.mainFlower });
+            }
+        } 
+        else { // квадратная клумба: сетка с шагом ~0.3 м
+            const step = randomRange(0.28, 0.36);
+            const startX = bed.x - bed.width/2;
+            const startY = bed.y - bed.height/2;
+            for (let ix = 0; ix <= bed.width/step; ix++) {
+                for (let iy = 0; iy <= bed.height/step; iy++) {
+                    if (Math.random() > 0.75) continue; // разрежение для натуральности
+                    const fx = startX + ix * step + (Math.random() - 0.5)*0.1;
+                    const fy = startY + iy * step + (Math.random() - 0.5)*0.1;
+                    if (fx > startX - 0.2 && fx < startX + bed.width + 0.2 && fy > startY -0.2 && fy < startY+bed.height+0.2)
+                        flowers.push({ x: fx, y: fy, bedId, flowerType: bed.mainFlower });
+                }
+            }
+        }
+        return flowers;
+    }
+    
+    // ------ ОТРИСОВКА ЧЕРЕЗ LEAFLET (кастомный canvas слой) ------
+    function renderMap(beds, paths, allFlowers) {
+        if (currentLayer) map.removeLayer(currentLayer);
+        if (currentFlowerMarkers.length) currentFlowerMarkers.forEach(m => map.removeLayer(m));
+        currentFlowerMarkers = [];
+        
+        const canvasLayer = L.gridLayer.extend({
+            onAdd: function() {
+                const canvas = L.DomUtil.create('canvas', 'leaflet-canvas-layer');
+                this._canvas = canvas;
+                const pane = this._map.getPane('overlayPane');
+                pane.appendChild(canvas);
+                this._map.on('moveend zoomend', this._redraw, this);
+                this._redraw();
+            },
+            _redraw: function() {
+                const mapObj = this._map;
+                const size = mapObj.getSize();
+                this._canvas.width = size.x;
+                this._canvas.height = size.y;
+                this._canvas.style.width = size.x + 'px';
+                this._canvas.style.height = size.y + 'px';
+                const ctx = this._canvas.getContext('2d');
+                ctx.clearRect(0, 0, size.x, size.y);
+                
+                const toPoint = (x,y) => mapObj.latLngToContainerPoint(L.latLng(y, x));
+                // фон газон
+                ctx.fillStyle = '#b1cf7c';
+                ctx.fillRect(0,0,size.x,size.y);
+                // сетка 10м
+                ctx.beginPath();
+                ctx.strokeStyle = '#86a569';
+                for(let i=0;i<=W;i+=10){
+                    let p1 = toPoint(i,0), p2 = toPoint(i,H);
+                    ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
+                    let p3 = toPoint(0,i), p4 = toPoint(W,i);
+                    ctx.moveTo(p3.x,p3.y); ctx.lineTo(p4.x,p4.y); ctx.stroke();
+                }
+                // школа
+                ctx.fillStyle = '#bc8f6b';
+                let schoolTL = toPoint(SCHOOL_X-12, SCHOOL_Y);
+                let schoolBR = toPoint(SCHOOL_X+12, SCHOOL_Y+12);
+                ctx.fillRect(schoolTL.x, schoolTL.y, schoolBR.x-schoolTL.x, schoolBR.y-schoolTL.y);
+                ctx.fillStyle = '#7a5a3a';
+                ctx.fillRect(toPoint(SCHOOL_X-3, SCHOOL_Y+8).x, toPoint(SCHOOL_X-3, SCHOOL_Y+8).y, 6, 10);
+                // ворота
+                let gateL = toPoint(GATE_START, H-0.5);
+                let gateR = toPoint(GATE_END, H-1);
+                ctx.fillStyle = '#b88855';
+                ctx.fillRect(gateL.x, gateL.y-5, gateR.x-gateL.x, 7);
+                // дорожки
+                for(let path of paths){
+                    ctx.beginPath();
+                    ctx.lineWidth = path.width * (mapObj.getZoom()/12);
+                    ctx.strokeStyle = '#cfa668';
+                    for(let seg of path.points){
+                        let pt = toPoint(seg.x, seg.y);
+                        if(seg === path.points[0]) ctx.moveTo(pt.x, pt.y);
+                        else ctx.lineTo(pt.x, pt.y);
+                    }
+                    ctx.stroke();
+                }
+                // клумбы
+                for(let bed of beds){
+                    let center = toPoint(bed.x, bed.y);
+                    if(bed.type === 'circle'){
+                        let rPx = bed.radius * (mapObj.getZoom()/10)*2.2;
+                        ctx.beginPath();
+                        ctx.arc(center.x, center.y, rPx, 0, 2*Math.PI);
+                        ctx.fillStyle = '#d9c292';
+                        ctx.fill();
+                        ctx.strokeStyle = '#7e5a3c';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                        ctx.fillStyle = '#2f3e2e';
+                        ctx.font = 'bold 11px Segoe UI';
+                        ctx.fillText(`R=${bed.radius.toFixed(1)}м`, center.x-20, center.y-12);
+                    } else {
+                        let wPx = bed.width * (mapObj.getZoom()/10)*2;
+                        let hPx = bed.height * (mapObj.getZoom()/10)*2;
+                        ctx.fillStyle = '#e0c78c';
+                        ctx.fillRect(center.x - wPx/2, center.y - hPx/2, wPx, hPx);
+                        ctx.strokeRect(center.x - wPx/2, center.y - hPx/2, wPx, hPx);
+                        ctx.fillStyle = '#2f3e2e';
+                        ctx.fillText(`${bed.width.toFixed(1)}×${bed.height.toFixed(1)}м`, center.x-20, center.y-12);
+                    }
+                }
+            }
+        });
+        currentLayer = new canvasLayer();
+        map.addLayer(currentLayer);
+        
+        // Кликабельные области клумб (круглые/прямоугольные)
+        for(let bed of beds){
+            const calc = countFlowersOnBed(bed);
+            let popupHtml = `<div style="font-size:13px"><b>🌸 ${bed.mainFlower}</b><br>`;
+            if(bed.type === 'circle'){
+                popupHtml += `📐 Круглая клумба: R = ${bed.radius.toFixed(1)} м<br>`;
+                popupHtml += `📏 Длина окружности: <b>C = 2·π·R = ${(2*Math.PI*bed.radius).toFixed(1)} м</b><br>`;
+                popupHtml += `📍 Площадь: <b>S = π·R² = ${calc.area} м²</b><br>`;
+            } else {
+                popupHtml += `📐 Прямоугольная клумба: ${bed.width.toFixed(1)} × ${bed.height.toFixed(1)} м<br>`;
+                popupHtml += `📏 Периметр: <b>P = 2·(a+b) = ${calc.perimeter} м</b><br>`;
+                popupHtml += `📍 Площадь: <b>S = a·b = ${calc.area} м²</b><br>`;
+            }
+            popupHtml += `🌱 Плотность посадки: ~${calc.density} шт/м²<br>`;
+            popupHtml += `🌼 Количество цветов (рассады): <b>${calc.plants} шт</b><br>`;
+            popupHtml += `💡 Совет: шаг 25-30 см, полив утром.</div>`;
+            
+            if(bed.type === 'circle'){
+                L.circle([bed.y, bed.x], {radius: bed.radius, color: '#f4a261', weight: 2, fillOpacity: 0.01})
+                 .bindPopup(popupHtml, {className: 'custom-popup'}).addTo(map);
+            } else {
+                const bounds = [[bed.y - bed.height/2, bed.x - bed.width/2], [bed.y + bed.height/2, bed.x + bed.width/2]];
+                L.rectangle(bounds, {color: '#f4a261', weight: 2, fillOpacity: 0.01})
+                 .bindPopup(popupHtml, {className: 'custom-popup'}).addTo(map);
+            }
+        }
+        
+        // Маркеры цветов с фактами
+        for(let fl of allFlowers){
+            const icon = L.divIcon({html: `<div style="font-size:20px;">🌸</div>`, iconSize: [22,22], className: 'flower-marker'});
+            const marker = L.marker([fl.y, fl.x], {icon}).addTo(map);
+            const fact = factsDB[Math.floor(Math.random() * factsDB.length)];
+            marker.bindPopup(`<div class="flower-fact"><strong>${fl.flowerType}</strong><br>${fact}<br>📏 Посадка с шагом ~0.3 м</div>`);
+            currentFlowerMarkers.push(marker);
+        }
+        document.getElementById('statsArea').innerHTML = `🌷 Клумб: ${beds.length} | 🌸 Цветов: ${allFlowers.length} | 📐 Все расчёты в метрах`;
+    }
+    
+    // ГЛАВНЫЙ ЦИКЛ ГЕНЕРАЦИИ
+    function generateComplete() {
+        const paths = generatePaths();
+        const beds = generateFlowerBeds(paths, 100);
+        let allFlowers = [];
+        beds.forEach((bed, idx) => {
+            const flowers = generateFlowersOnBed(bed, idx);
+            allFlowers.push(...flowers);
+        });
+        currentBeds = beds;
+        currentPaths = paths;
+        renderMap(beds, paths, allFlowers);
+    }
+    
+    window.onload = () => {
+        const southWest = L.latLng(0, 0);
+        const northEast = L.latLng(H, W);
+        const bounds = L.latLngBounds(southWest, northEast);
+        map = L.map('map-container', { crs: L.CRS.Simple, maxBounds: bounds, maxBoundsViscosity: 1.0, zoomSnap: 0.5 })
+            .setView([H/2, W/2], 1.1);
+        L.tileLayer('', { attribution: 'Школьный генплан | Честные метры' }).addTo(map);
+        map.fitBounds(bounds);
+        document.getElementById('regenerateBtn').addEventListener('click', () => generateComplete());
+        generateComplete();
+    };
+</script>
+</body>
+</html>
