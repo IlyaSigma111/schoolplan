@@ -9,56 +9,56 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            user-select: none;
         }
 
         body {
             font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
-            background: #f1f5f0;
+            background: #eef3ea;
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
-        /* верхняя панель — минимум декора */
         .top-bar {
             background: #ffffff;
-            padding: 16px 24px;
+            padding: 12px 24px;
             display: flex;
             justify-content: space-between;
-            align-items: flex-end;
+            align-items: center;
             flex-wrap: wrap;
-            gap: 16px;
-            border-bottom: 1px solid #e2e8e0;
+            gap: 12px;
+            border-bottom: 1px solid #dde5d6;
         }
 
         .title-section h1 {
-            font-size: 1.5rem;
+            font-size: 1.35rem;
             font-weight: 500;
-            letter-spacing: -0.3px;
-            color: #1a2e1f;
+            letter-spacing: -0.2px;
+            color: #1e3a2a;
         }
 
         .title-section p {
-            font-size: 0.8rem;
-            color: #5a6e52;
+            font-size: 0.75rem;
+            color: #5a7152;
             margin-top: 4px;
         }
 
         .stats-badge {
-            background: #f0f3ee;
-            padding: 6px 14px;
-            border-radius: 40px;
+            background: #eef3e9;
+            padding: 5px 14px;
+            border-radius: 30px;
             font-size: 0.8rem;
-            color: #2c4a2a;
+            color: #2a5a2a;
             font-weight: 450;
         }
 
         button {
-            background: #2c5e2f;
+            background: #2f6b3a;
             border: none;
-            padding: 8px 20px;
-            border-radius: 40px;
+            padding: 7px 18px;
+            border-radius: 32px;
             font-weight: 500;
             font-size: 0.85rem;
             color: white;
@@ -66,30 +66,28 @@
             transition: 0.15s;
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         button:hover {
-            background: #1f4621;
+            background: #1f5428;
         }
 
-        /* инфо-строка */
         .info-row {
-            background: #fafcf8;
-            padding: 8px 24px;
+            background: #fafdf6;
+            padding: 6px 24px;
             display: flex;
-            gap: 28px;
-            font-size: 0.75rem;
-            color: #3e5a37;
-            border-bottom: 1px solid #e2e8e0;
+            gap: 24px;
+            font-size: 0.7rem;
+            color: #4a6840;
+            border-bottom: 1px solid #e2e8dc;
             font-weight: 450;
         }
 
-        /* контейнер для канваса */
         .canvas-container {
             flex: 1;
             position: relative;
-            background: #e3ecd9;
+            background: #dde8d2;
             overflow: hidden;
             cursor: grab;
         }
@@ -105,47 +103,38 @@
             display: block;
         }
 
-        /* тост с информацией */
         .toast-info {
             position: fixed;
-            bottom: 24px;
-            left: 24px;
+            bottom: 20px;
+            left: 20px;
             background: #1e2f24;
             color: #f0f7e6;
-            padding: 12px 18px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            max-width: 320px;
+            padding: 10px 16px;
+            border-radius: 18px;
+            font-size: 0.75rem;
+            max-width: 300px;
             backdrop-filter: blur(8px);
-            background: rgba(25, 40, 20, 0.92);
+            background: rgba(25, 40, 20, 0.94);
             border-left: 3px solid #9bc48b;
             pointer-events: none;
             z-index: 200;
             transition: opacity 0.2s ease;
-            font-weight: 430;
             line-height: 1.4;
         }
 
         .zoom-hint {
             position: fixed;
-            bottom: 16px;
-            right: 20px;
-            background: rgba(0,0,0,0.45);
+            bottom: 14px;
+            right: 16px;
+            background: rgba(0,0,0,0.4);
             backdrop-filter: blur(4px);
-            padding: 5px 12px;
-            border-radius: 30px;
-            font-size: 0.7rem;
-            color: #eef5e6;
+            padding: 4px 10px;
+            border-radius: 24px;
+            font-size: 0.65rem;
+            color: #f0f7e6;
             pointer-events: none;
             z-index: 200;
             font-family: monospace;
-        }
-
-        @media (max-width: 700px) {
-            .top-bar { padding: 12px 16px; }
-            .title-section h1 { font-size: 1.2rem; }
-            button { padding: 6px 14px; font-size: 0.75rem; }
-            .info-row { padding: 6px 16px; gap: 12px; font-size: 0.7rem; }
         }
     </style>
 </head>
@@ -153,10 +142,10 @@
 
 <div class="top-bar">
     <div class="title-section">
-        <h1>школьный участок · генератор</h1>
-        <p>110×65 м · вход 30–50 м (юг) · школа север (центр)</p>
+        <h1>школьный участок · планировщик</h1>
+        <p>110×65 м · вход (юг, 30–50 м) · школа север (центр)</p>
     </div>
-    <div style="display: flex; gap: 16px; align-items: center;">
+    <div style="display: flex; gap: 12px; align-items: center;">
         <div class="stats-badge" id="statsDisplay">— клумб, — цветов</div>
         <button id="regenerateBtn">
             <span>⟳</span> новый план
@@ -178,45 +167,41 @@
     // --------------------------------------------------------------
     // РАЗМЕРЫ УЧАСТКА (метры)
     // --------------------------------------------------------------
-    const FIELD_W = 110;          // метров (x)
-    const FIELD_H = 65;           // метров (y)
+    const FIELD_W = 110;
+    const FIELD_H = 65;
     const GATE_START = 30;
     const GATE_END = 50;
-    const SCHOOL_CX = 55;         // центр школы по X
+    const SCHOOL_CX = 55;
     const SCHOOL_Y = 0;
-    const SCHOOL_W = 24;          // ширина здания
-    const SCHOOL_H = 12;
+    const SCHOOL_W = 22;
+    const SCHOOL_H = 11;
 
-    // --------------------------------------------------------------
-    // ГЛОБАЛЬНЫЕ ДАННЫЕ
-    // --------------------------------------------------------------
-    let beds = [];           // клумбы: {type, x, y, radius / width, height, mainFlower}
-    let paths = [];          // дорожки: {width, points: [{x,y}]}
-    let flowers = [];        // {x, y, bedId, flowerType}
-    
-    // камера (зум + панорамирование)
+    // Глобальные данные
+    let beds = [];
+    let paths = [];
+    let flowers = [];
+
+    // Камера
     let camera = { x: 0, y: 0, zoom: 1.0, width: 800, height: 600 };
     let isDragging = false;
     let dragStart = { x: 0, y: 0 };
     let canvas, ctx, container;
 
-    // база фактов (реальные садовые советы)
     const FACTS = [
-        "🌱 Бархатцы выделяют вещества, которые отпугивают нематод и тлю.",
-        "💧 Полив под корень утром снижает риск грибковых болезней.",
-        "🌻 Подсолнухи помогают очищать почву от свинца и кадмия.",
-        "🌸 Петунии нужно прищипывать после 4-го листа для кустистости.",
+        "🌱 Бархатцы защищают розы от тли — посадите по краю клумбы.",
+        "💧 Поливайте под корень утром, чтобы избежать грибка.",
+        "🌻 Подсолнухи очищают почву от тяжёлых металлов.",
+        "🌸 Петунии нужно прищипывать для пышного цветения.",
         "🌹 Розы любят золу: стакан под куст весной.",
-        "🍀 Клевер ползучий обогащает газон азотом – удобрение не нужно.",
-        "📐 Площадь круга S = πR², длина окружности C = 2πR (9 класс).",
-        "📏 Шаг посадки цветов 25–30 см – оптимальная плотность.",
-        "🌷 Луковицы тюльпанов сажают на глубину 3 луковиц.",
-        "✂️ Удаление увядших соцветий продлевает цветение на 2–3 недели.",
-        "🐝 Лаванда привлекает пчёл и улучшает опыление всего огорода.",
-        "🌿 Мульча из коры сохраняет влагу и не даёт расти сорнякам."
+        "🍀 Клевер обогащает газон азотом — удобрения не нужны.",
+        "📐 Площадь круга: πR², длина окружности: 2πR.",
+        "📏 Оптимальный шаг посадки цветов — 25–30 см.",
+        "🌷 Луковицы тюльпанов сажают на глубину 10–12 см.",
+        "✂️ Удаляйте увядшие соцветия — цветение станет дольше.",
+        "🐝 Лаванда привлекает пчёл и улучшает опыление.",
+        "🌿 Мульча сохраняет влагу и подавляет сорняки."
     ];
 
-    // случайное число
     function rand(min, max) {
         return min + Math.random() * (max - min);
     }
@@ -226,7 +211,7 @@
         return arr[Math.floor(Math.random() * arr.length)];
     }
 
-    // ---------- ГЕОМЕТРИЧЕСКИЕ ПРОВЕРКИ (метры) ----------
+    // ---------- ГЕОМЕТРИЯ ----------
     function distToSegment(px, py, ax, ay, bx, by) {
         const abx = bx - ax;
         const aby = by - ay;
@@ -248,7 +233,6 @@
                 y1 - margin < y2 + h2 + margin && y1 + h1 + margin > y2 - margin);
     }
 
-    // пересечение клумбы с дорожками
     function bedCollidesWithPaths(bed, pathsList, margin = 1.0) {
         for (let p of pathsList) {
             for (let i = 0; i < p.points.length - 1; i++) {
@@ -299,50 +283,46 @@
     }
 
     function bedCollidesWithGate(bed, margin = 1.2) {
-        const gateRect = { x: GATE_START, y: FIELD_H - 1.5, w: GATE_END - GATE_START, h: 2.5 };
+        const gateRect = { x: GATE_START, y: FIELD_H - 1.5, w: GATE_END - GATE_START, h: 2.2 };
         if (bed.type === 'circle')
             return circleRectCollision(bed.x, bed.y, bed.radius, gateRect.x, gateRect.y, gateRect.w, gateRect.h, margin);
         else
             return rectRectCollision(bed.x - bed.width/2, bed.y - bed.height/2, bed.width, bed.height, gateRect.x, gateRect.y, gateRect.w, gateRect.h, margin);
     }
 
-    // ---------- ГЕНЕРАЦИЯ ДОРОЖЕК ----------
+    // ---------- ГЕНЕРАЦИЯ ----------
     function generatePaths() {
         const p = [];
-        // центральная аллея (левая часть от ворот)
-        p.push({ width: rand(1.8, 2.3), points: [
+        p.push({ width: rand(1.6, 2.1), points: [
             { x: GATE_START, y: FIELD_H },
-            { x: rand(38, 48), y: rand(35, 48) },
-            { x: SCHOOL_CX - 4, y: SCHOOL_Y + 3 }
+            { x: rand(40, 47), y: rand(38, 48) },
+            { x: SCHOOL_CX - 3.5, y: SCHOOL_Y + 2.5 }
         ]});
-        // правая часть
-        p.push({ width: rand(1.8, 2.3), points: [
+        p.push({ width: rand(1.6, 2.1), points: [
             { x: GATE_END, y: FIELD_H },
-            { x: rand(62, 74), y: rand(38, 50) },
-            { x: SCHOOL_CX + 4, y: SCHOOL_Y + 3 }
+            { x: rand(63, 73), y: rand(40, 50) },
+            { x: SCHOOL_CX + 3.5, y: SCHOOL_Y + 2.5 }
         ]});
-        // дополнительная поперечная дорожка
-        p.push({ width: rand(1.5, 2.0), points: [
-            { x: rand(18, 28), y: rand(28, 38) },
-            { x: rand(82, 95), y: rand(32, 44) }
+        p.push({ width: rand(1.4, 1.9), points: [
+            { x: rand(20, 30), y: rand(30, 38) },
+            { x: rand(82, 94), y: rand(34, 44) }
         ]});
         return p;
     }
 
-    // ГЕНЕРАЦИЯ КЛУМБ
-    function generateBeds(pathsList, maxAttempts = 140) {
+    function generateBeds(pathsList, maxAttempts = 130) {
         const newBeds = [];
-        const target = Math.floor(rand(5, 9));
+        const target = Math.floor(rand(5, 8));
         for (let i = 0; i < target; i++) {
             let placed = false;
             for (let attempts = 0; attempts < maxAttempts && !placed; attempts++) {
-                const isCircle = Math.random() < 0.7;
+                const isCircle = Math.random() < 0.65;
                 if (isCircle) {
-                    const radius = rand(2.5, 8.2);
-                    const x = rand(radius + 1.5, FIELD_W - radius - 1.5);
-                    const y = rand(radius + 1.5, FIELD_H - radius - 1.5);
+                    const radius = rand(2.2, 5.5);
+                    const x = rand(radius + 2.0, FIELD_W - radius - 2.0);
+                    const y = rand(radius + 2.0, FIELD_H - radius - 2.0);
                     const candidate = { type: 'circle', x, y, radius, mainFlower: randomFlower() };
-                    if (!bedCollidesWithOtherBeds(candidate, newBeds, 1.2) &&
+                    if (!bedCollidesWithOtherBeds(candidate, newBeds, 1.3) &&
                         !bedCollidesWithPaths(candidate, pathsList, 1.0) &&
                         !bedCollidesWithSchool(candidate, 1.3) &&
                         !bedCollidesWithGate(candidate, 1.2)) {
@@ -350,12 +330,12 @@
                         placed = true;
                     }
                 } else {
-                    const width = rand(2.2, 6.8);
-                    const height = rand(2.2, 6.8);
-                    const x = rand(width/2 + 1.5, FIELD_W - width/2 - 1.5);
-                    const y = rand(height/2 + 1.5, FIELD_H - height/2 - 1.5);
+                    const width = rand(2.2, 5.2);
+                    const height = rand(2.2, 5.2);
+                    const x = rand(width/2 + 2.0, FIELD_W - width/2 - 2.0);
+                    const y = rand(height/2 + 2.0, FIELD_H - height/2 - 2.0);
                     const candidate = { type: 'square', x, y, width, height, mainFlower: randomFlower() };
-                    if (!bedCollidesWithOtherBeds(candidate, newBeds, 1.2) &&
+                    if (!bedCollidesWithOtherBeds(candidate, newBeds, 1.3) &&
                         !bedCollidesWithPaths(candidate, pathsList, 1.0) &&
                         !bedCollidesWithSchool(candidate, 1.3) &&
                         !bedCollidesWithGate(candidate, 1.2)) {
@@ -368,7 +348,6 @@
         return newBeds;
     }
 
-    // статистика для попапа
     function getBedStats(bed) {
         let area = 0, perimeter = 0;
         if (bed.type === 'circle') {
@@ -378,39 +357,36 @@
             area = bed.width * bed.height;
             perimeter = 2 * (bed.width + bed.height);
         }
-        const density = rand(4.2, 5.8);
+        const density = rand(4.0, 5.5);
         let plants = Math.floor(area * density);
-        plants = Math.max(6, plants);
+        plants = Math.max(5, plants);
         return { area: area.toFixed(1), perimeter: perimeter.toFixed(1), plants, density: density.toFixed(1) };
     }
 
-    // генерация цветов на клумбе (шаг ~0.3 м)
     function generateFlowersOnBed(bed, bedId) {
         const list = [];
         if (bed.type === 'circle') {
             const circumference = 2 * Math.PI * bed.radius;
-            const step = rand(0.28, 0.38);
+            const step = rand(0.3, 0.4);
             let numCirc = Math.floor(circumference / step);
-            numCirc = Math.min(45, Math.max(6, numCirc));
+            numCirc = Math.min(35, Math.max(6, numCirc));
             for (let i = 0; i < numCirc; i++) {
                 const ang = (i / numCirc) * Math.PI * 2;
-                const fx = bed.x + Math.cos(ang) * bed.radius;
-                const fy = bed.y + Math.sin(ang) * bed.radius;
-                list.push({ x: fx, y: fy, bedId, flowerType: bed.mainFlower });
+                list.push({ x: bed.x + Math.cos(ang) * bed.radius, y: bed.y + Math.sin(ang) * bed.radius, bedId, flowerType: bed.mainFlower });
             }
-            const innerCnt = Math.min(32, Math.floor(Math.PI * bed.radius * bed.radius * 4.5 * 0.4));
+            const innerCnt = Math.min(28, Math.floor(Math.PI * bed.radius * bed.radius * 4.2 * 0.35));
             for (let i = 0; i < innerCnt; i++) {
-                const r = Math.sqrt(Math.random()) * bed.radius * 0.7;
+                const r = Math.sqrt(Math.random()) * bed.radius * 0.65;
                 const ang = Math.random() * Math.PI * 2;
                 list.push({ x: bed.x + Math.cos(ang) * r, y: bed.y + Math.sin(ang) * r, bedId, flowerType: bed.mainFlower });
             }
         } else {
-            const step = rand(0.28, 0.36);
+            const step = rand(0.3, 0.38);
             const startX = bed.x - bed.width/2;
             const startY = bed.y - bed.height/2;
             for (let ix = 0; ix <= bed.width / step; ix++) {
                 for (let iy = 0; iy <= bed.height / step; iy++) {
-                    if (Math.random() > 0.7) continue;
+                    if (Math.random() > 0.68) continue;
                     const fx = startX + ix * step + (Math.random() - 0.5) * 0.1;
                     const fy = startY + iy * step + (Math.random() - 0.5) * 0.1;
                     if (fx > startX - 0.2 && fx < startX + bed.width + 0.2 && fy > startY - 0.2 && fy < startY + bed.height + 0.2)
@@ -421,7 +397,7 @@
         return list;
     }
 
-    // ---------- ОТРИСОВКА (КАСТОМНЫЙ ЗУМ/ПАН) ----------
+    // ---------- ОТРИСОВКА ----------
     function worldToScreen(x, y) {
         return { x: (x - camera.x) * camera.zoom, y: (y - camera.y) * camera.zoom };
     }
@@ -433,12 +409,12 @@
         if (!ctx) return;
         const w = camera.width, h = camera.height;
         ctx.clearRect(0, 0, w, h);
-        ctx.fillStyle = '#e0ebd3';
+        ctx.fillStyle = '#dee8d2';
         ctx.fillRect(0, 0, w, h);
         
-        // сетка 10 метров
+        // сетка 10 м
         ctx.beginPath();
-        ctx.strokeStyle = '#b6caa2';
+        ctx.strokeStyle = '#b8cca4';
         ctx.lineWidth = 1;
         for (let i = 0; i <= FIELD_W; i += 10) {
             let p1 = worldToScreen(i, 0), p2 = worldToScreen(i, FIELD_H);
@@ -448,20 +424,20 @@
         }
         
         // школа
-        ctx.fillStyle = '#bc8f6b';
+        ctx.fillStyle = '#b88962';
         const sLeft = worldToScreen(SCHOOL_CX - SCHOOL_W/2, SCHOOL_Y);
         const sRight = worldToScreen(SCHOOL_CX + SCHOOL_W/2, SCHOOL_Y + SCHOOL_H);
         ctx.fillRect(sLeft.x, sLeft.y, sRight.x - sLeft.x, sRight.y - sLeft.y);
         ctx.fillStyle = '#6e4f34';
-        const doorL = worldToScreen(SCHOOL_CX - 3, SCHOOL_Y + 7);
-        const doorR = worldToScreen(SCHOOL_CX + 3, SCHOOL_Y + 12);
+        const doorL = worldToScreen(SCHOOL_CX - 2.5, SCHOOL_Y + 6);
+        const doorR = worldToScreen(SCHOOL_CX + 2.5, SCHOOL_Y + 11);
         ctx.fillRect(doorL.x, doorL.y, doorR.x - doorL.x, doorR.y - doorL.y);
         
         // ворота
-        ctx.fillStyle = '#b88855';
-        const gateL = worldToScreen(GATE_START, FIELD_H - 1);
+        ctx.fillStyle = '#b17f4a';
+        const gateL = worldToScreen(GATE_START, FIELD_H - 0.8);
         const gateR = worldToScreen(GATE_END, FIELD_H);
-        ctx.fillRect(gateL.x, gateL.y - 6, gateR.x - gateL.x, 8);
+        ctx.fillRect(gateL.x, gateL.y - 5, gateR.x - gateL.x, 7);
         
         // дорожки
         for (let p of paths) {
@@ -484,39 +460,43 @@
                 const rPx = bed.radius * camera.zoom;
                 ctx.beginPath();
                 ctx.arc(c.x, c.y, rPx, 0, 2 * Math.PI);
-                ctx.fillStyle = '#e7dbbd';
+                ctx.fillStyle = '#e3d6b5';
                 ctx.fill();
                 ctx.strokeStyle = '#8b694a';
-                ctx.lineWidth = 1.8;
+                ctx.lineWidth = 1.5;
                 ctx.stroke();
                 ctx.fillStyle = '#2c4724';
-                ctx.font = `500 ${Math.max(11, 12 * camera.zoom)}px Inter`;
-                ctx.fillText(`R=${bed.radius.toFixed(1)}м`, c.x - 18, c.y - 10);
+                ctx.font = `400 ${Math.max(10, 11 * camera.zoom)}px Inter`;
+                ctx.fillText(`${bed.radius.toFixed(1)}м`, c.x - 14, c.y - 8);
             } else {
                 const w2 = bed.width/2, h2 = bed.height/2;
                 const tl = worldToScreen(bed.x - w2, bed.y - h2);
                 const br = worldToScreen(bed.x + w2, bed.y + h2);
-                ctx.fillStyle = '#e7dbbd';
+                ctx.fillStyle = '#e3d6b5';
                 ctx.fillRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y);
                 ctx.strokeRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y);
                 ctx.fillStyle = '#2c4724';
-                ctx.font = `${Math.max(10, 11 * camera.zoom)}px Inter`;
-                ctx.fillText(`${bed.width.toFixed(1)}×${bed.height.toFixed(1)}м`, tl.x + 4, tl.y - 4);
+                ctx.font = `${Math.max(9, 10 * camera.zoom)}px Inter`;
+                ctx.fillText(`${bed.width.toFixed(1)}×${bed.height.toFixed(1)}`, tl.x + 3, tl.y - 4);
             }
         }
         
-        // цветы (эмодзи)
+        // цветы (маленькие точки, а не гигантские эмодзи)
         for (let fl of flowers) {
             const pos = worldToScreen(fl.x, fl.y);
-            ctx.font = `${Math.max(16, 22 * camera.zoom)}px "Segoe UI Emoji"`;
-            ctx.fillStyle = '#d45a3a';
-            ctx.fillText("🌸", pos.x - 12, pos.y - 8);
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, Math.max(2, 3 * camera.zoom), 0, 2 * Math.PI);
+            ctx.fillStyle = '#e86f4a';
+            ctx.fill();
+            ctx.fillStyle = '#f5bc70';
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, Math.max(1, 1.8 * camera.zoom), 0, 2 * Math.PI);
+            ctx.fill();
         }
         
         document.getElementById('statsDisplay').innerHTML = `🌼 ${beds.length} клумб · ${flowers.length} цветов`;
     }
     
-    // ---------- ОБРАБОТКА ВЗАИМОДЕЙСТВИЙ ----------
     function showMessage(html) {
         const toast = document.getElementById('toastMessage');
         toast.innerHTML = html;
@@ -532,10 +512,9 @@
         const mouseY = (e.clientY - rect.top) * scaleY;
         const world = screenToWorld(mouseX, mouseY);
         
-        // клик по клумбе
         for (let bed of beds) {
             if (bed.type === 'circle') {
-                if (Math.hypot(world.x - bed.x, world.y - bed.y) <= bed.radius + 0.7) {
+                if (Math.hypot(world.x - bed.x, world.y - bed.y) <= bed.radius + 0.6) {
                     const s = getBedStats(bed);
                     const formulaPart = bed.type === 'circle' 
                         ? `📐 круг: R = ${bed.radius.toFixed(1)} м<br>📏 C = 2·π·R = ${(2*Math.PI*bed.radius).toFixed(1)} м`
@@ -552,9 +531,8 @@
                 }
             }
         }
-        // клик по цветку
         for (let fl of flowers) {
-            if (Math.hypot(world.x - fl.x, world.y - fl.y) < 0.9) {
+            if (Math.hypot(world.x - fl.x, world.y - fl.y) < 0.8) {
                 const fact = FACTS[Math.floor(Math.random() * FACTS.length)];
                 showMessage(`<b>${fl.flowerType}</b><br>📖 ${fact}<br>🌿 шаг посадки ~30 см`);
                 return;
@@ -573,19 +551,16 @@
             camera.height = rect.height;
             canvas.width = rect.width;
             canvas.height = rect.height;
-            if (camera.zoom === 1.0) {
-                const sx = camera.width / FIELD_W;
-                const sy = camera.height / FIELD_H;
-                camera.zoom = Math.min(sx, sy) * 0.85;
-                camera.x = (FIELD_W / 2) - (camera.width / 2) / camera.zoom;
-                camera.y = (FIELD_H / 2) - (camera.height / 2) / camera.zoom;
-            }
+            const sx = camera.width / FIELD_W;
+            const sy = camera.height / FIELD_H;
+            camera.zoom = Math.min(sx, sy) * 0.9;
+            camera.x = (FIELD_W / 2) - (camera.width / 2) / camera.zoom;
+            camera.y = (FIELD_H / 2) - (camera.height / 2) / camera.zoom;
             draw();
         };
         window.addEventListener('resize', resize);
         resize();
         
-        // панорамирование
         canvas.addEventListener('mousedown', (e) => {
             isDragging = true;
             dragStart.x = e.clientX;
@@ -612,8 +587,8 @@
             const mx = (e.clientX - rect.left) * (canvas.width/rect.width);
             const my = (e.clientY - rect.top) * (canvas.height/rect.height);
             const before = screenToWorld(mx, my);
-            const delta = e.deltaY > 0 ? 0.92 : 1.08;
-            camera.zoom = Math.min(4.5, Math.max(0.5, camera.zoom * delta));
+            const delta = e.deltaY > 0 ? 0.93 : 1.07;
+            camera.zoom = Math.min(4.0, Math.max(0.5, camera.zoom * delta));
             const after = screenToWorld(mx, my);
             camera.x += before.x - after.x;
             camera.y += before.y - after.y;
